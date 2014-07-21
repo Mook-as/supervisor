@@ -3,6 +3,8 @@ import time
 import datetime
 import errno
 
+from supervisor.compat import monotonic_time
+
 from supervisor.options import readFile
 from supervisor.options import tailFile
 from supervisor.options import NotExecutable
@@ -288,12 +290,12 @@ class SupervisorNamespaceRPCInterface:
                 # function appears to not work (symptom: 2nd or 3rd
                 # call through, it forgets about 'started', claiming
                 # it's undeclared).
-                started.append(time.time())
+                started.append(monotonic_time())
 
             if not wait or not startsecs:
                 return True
                 
-            t = time.time()
+            t = monotonic_time()
             runtime = (t - started[0])
             state = process.get_state()
 
@@ -505,7 +507,7 @@ class SupervisorNamespaceRPCInterface:
 
         start = int(process.laststart)
         stop = int(process.laststop)
-        now = int(time.time())
+        now = int(monotonic_time())
         
         state = process.get_state()
         spawnerr = process.spawnerr or ''

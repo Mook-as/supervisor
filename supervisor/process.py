@@ -1,11 +1,12 @@
 import os
 import sys
-import time
 import errno
 import shlex
 import StringIO
 import traceback
 import signal
+
+from supervisor.compat import monotonic_time
 
 from supervisor.medusa import asyncore_25 as asyncore
 
@@ -158,7 +159,7 @@ class Subprocess:
             events.notify(event)
 
         if new_state == ProcessStates.BACKOFF:
-            now = time.time()
+            now = monotonic_time()
             self.backoff = self.backoff + 1
             self.delay = now + self.backoff
 
@@ -193,7 +194,7 @@ class Subprocess:
         self.system_stop = 0
         self.administrative_stop = 0
         
-        self.laststart = time.time()
+        self.laststart = monotonic_time()
 
         self._assertInState(ProcessStates.EXITED, ProcessStates.FATAL,
                             ProcessStates.BACKOFF, ProcessStates.STOPPED)
@@ -253,7 +254,7 @@ class Subprocess:
         options.close_child_pipes(self.pipes)
         options.logger.info('spawned: %r with pid %s' % (self.config.name, pid))
         self.spawnerr = None
-        self.delay = time.time() + self.config.startsecs
+        self.delay = monotonic_time() + self.config.startsecs
         options.pidhistory[pid] = self
         return pid
 
@@ -343,7 +344,7 @@ class Subprocess:
         Return None if the signal was sent, or an error message string
         if an error occurred or if the subprocess is not running.
         """
-        now = time.time()
+        now = monotonic_time()
         options = self.config.options
         if not self.pid:
             msg = ("attempted to kill %s with sig %s but it wasn't running" %
@@ -402,7 +403,7 @@ class Subprocess:
 
         es, msg = decode_wait_status(sts)
 
-        now = time.time()
+        now = monotonic_time()
         self.laststop = now
         processname = self.config.name
 
@@ -493,7 +494,7 @@ class Subprocess:
         return self.state
 
     def transition(self):
-        now = time.time()
+        now = monotonic_time()
         state = self.state
 
         logger = self.config.options.logger
@@ -714,7 +715,7 @@ class EventListenerPool(ProcessGroupBase):
                     dispatch_capable = True
         if dispatch_capable:
             if self.dispatch_throttle:
-                now = time.time()
+                now = monotonic_time()
                 if now - self.last_dispatch < self.dispatch_throttle:
                     return
             self.dispatch()
@@ -729,7 +730,7 @@ class EventListenerPool(ProcessGroupBase):
                 # to process any further events in the buffer
                 self._acceptEvent(event, head=True)
                 break
-        self.last_dispatch = time.time()
+        self.last_dispatch = monotonic_time()
 
     def _acceptEvent(self, event, head=False):
         # events are required to be instances
